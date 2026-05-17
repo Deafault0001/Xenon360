@@ -1,15 +1,3 @@
-name: Build IPA
-on:
-  workflow_dispatch:
-jobs:
-  build:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: brew install xcodegen
-
       - name: Create project spec
         run: |
           cat > project.yml << 'EOF'
@@ -23,35 +11,16 @@ jobs:
               type: application
               platform: iOS
               sources:
-                - Sources
+                - path: Sources/Xenon360
+                  optional: true
+                - path: .
+                  includes:
+                    - "**/*.swift"
+                  excludes:
+                    - "Tests/**"
               info:
                 path: Xenon360/Info.plist
+                properties:
+                  CFBundleDisplayName: Xenon360
+                  MinimumOSVersion: "18.0"
           EOF
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Build
-        run: |
-          xcodebuild \
-            -project Xenon360.xcodeproj \
-            -scheme Xenon360 \
-            -sdk iphoneos \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO \
-            -derivedDataPath build
-
-      - name: Package IPA
-        run: |
-          mkdir Payload
-          cp -r build/Build/Products/Release-iphoneos/Xenon360.app Payload/
-          zip -r Xenon360.ipa Payload/
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: Xenon360-IPA
-          path: Xenon360.ipa
